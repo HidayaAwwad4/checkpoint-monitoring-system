@@ -28,7 +28,10 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-native" % "3.6.11",
   "org.json4s" %% "json4s-jackson" % "3.6.11",
 
-  // Guava for Bloom Filter (optional - يمكن نكتب implementation خاص)
+  // Typesafe Config
+  "com.typesafe" % "config" % "1.4.1",
+
+  // Guava for Bloom Filter
   "com.google.guava" % "guava" % "30.1-jre",
 
   // Logging
@@ -45,17 +48,4 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
   "-unchecked"
-)
-
-// Exclude some problematic dependencies
-assembly / assemblyMergeStrategy := {
-  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-  case "reference.conf" => MergeStrategy.concat
-  case x => MergeStrategy.first
-}
-
-run / fork := true
-run / javaOptions ++= Seq(
-  "-Xms512M",
-  "-Xmx2048M"
 )
