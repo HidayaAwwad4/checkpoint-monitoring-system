@@ -198,6 +198,44 @@ object MessageAnalyzer {
     }.map { case (name, id) => (name, id) }
   }
 
+  private def detectCheckpointByContext(text: String): Option[(String, String)] = {
+    val words = text.split("\\s+")
+
+    for (i <- words.indices) {
+      val word = words(i).toLowerCase
+
+      if (statusKeywords.contains(word)) {
+        if (i > 0) {
+          val prevWord = words(i - 1)
+          if (isValidCheckpointName(prevWord)) {
+            val id = generateCheckpointId(prevWord)
+            return Some((prevWord, id))
+          }
+        }
+
+        if (i < words.length - 1) {
+          val nextWord = words(i + 1)
+          if (isValidCheckpointName(nextWord)) {
+            val id = generateCheckpointId(nextWord)
+            return Some((nextWord, id))
+          }
+        }
+      }
+    }
+
+    val emojiPattern = """[✅❌🔴]""".r
+    emojiPattern.findAllMatchIn(text).foreach { _ =>
+      words.foreach { word =>
+        if (isValidCheckpointName(word) && !statusKeywords.contains(word.toLowerCase)) {
+          val id = generateCheckpointId(word)
+          return Some((word, id))
+        }
+      }
+    }
+
+    None
+  }
+
 
 
 
