@@ -264,6 +264,21 @@ object MessageAnalyzer {
       .replaceAll("[^a-z0-9_\\u0600-\\u06FF]", "")
   }
 
+  private def detectStatusFromEmojis(text: String): Option[String] = {
+    val hasCheckmark = text.contains("✅") || text.contains("✓")
+    val hasCross = text.contains("❌") || text.contains("✖")
+    val hasRedCircle = text.contains("🔴")
+
+    if (hasRedCircle) {
+      Some("busy")
+    } else if (hasCross) {
+      Some("closed")
+    } else if (hasCheckmark) {
+      Some("open")
+    } else {
+      None
+    }
+  }
 
 
 
