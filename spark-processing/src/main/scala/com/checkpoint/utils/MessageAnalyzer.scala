@@ -69,4 +69,29 @@ object MessageAnalyzer {
     "شافي شمرون" -> "shavei_shomron",
     "يتسهار" -> "yitzhar"
   )
+
+
+
+def analyzeMessage(message: Message): Seq[CheckpointStatus] = {
+  val text = message.text.trim
+  val textLower = text.toLowerCase
+
+
+  val lines = text.split("\n").map(_.trim).filter(_.nonEmpty)
+
+
+  val statusList = lines.flatMap { line =>
+    analyzeSingleLine(line, message)
+  }.toSeq
+
+  if (statusList.isEmpty) {
+    analyzeSingleLine(text, message).toSeq
+  } else {
+    statusList
+  }
 }
+
+
+
+
+
