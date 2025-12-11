@@ -315,5 +315,13 @@ object MessageAnalyzer {
     }
   }
 
+  private def combineStatusWithDirection(status: String, direction: String): String = {
+    if (direction == "both") {
+      status
+    } else {
+      s"${status}_${direction}"
+    }
+  }
+
 
 
