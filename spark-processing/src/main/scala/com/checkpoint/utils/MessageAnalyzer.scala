@@ -23,6 +23,7 @@ object MessageAnalyzer {
   private val inboundKeywords = Set("للداخل","للفايت","فايت","الفايت", "داخل","دخول", "الداخل")
   private val outboundKeywords = Set("للخارج", "خارج","للطالع","لطالع","الطالع","طالع","خروج", "الخارج")
 
+
   private val statusKeywords = openKeywords ++ closedKeywords ++ busyKeywords
 
   private val checkpointNames = Map(
@@ -71,7 +72,6 @@ object MessageAnalyzer {
   )
 
 
-
   def analyzeMessage(message: Message): Seq[CheckpointStatus] = {
     val text = message.text.trim
     val textLower = text.toLowerCase
@@ -90,6 +90,7 @@ object MessageAnalyzer {
       statusList
     }
   }
+
 
   private def analyzeSingleLine(line: String, message: Message): Seq[CheckpointStatus] = {
     val lineLower = line.toLowerCase
@@ -122,6 +123,7 @@ object MessageAnalyzer {
       )
     }
   }
+
 
   private def detectAllCheckpoints(text: String): Seq[(String, String)] = {
     val checkpoints = scala.collection.mutable.ListBuffer[(String, String)]()
@@ -384,6 +386,3 @@ object MessageAnalyzer {
     println("\n" + "=" * 60)
   }
 }
-
-
-
