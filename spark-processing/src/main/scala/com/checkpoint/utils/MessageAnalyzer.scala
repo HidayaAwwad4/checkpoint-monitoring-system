@@ -323,5 +323,28 @@ object MessageAnalyzer {
     }
   }
 
+  private def calculateConfidence(text: String, textLower: String, status: String): Double = {
+    var confidence = 0.5
+
+    if (text.contains("✅") || text.contains("❌") || text.contains("🔴")) {
+      confidence += 0.3
+    }
+
+    val words = textLower.split("\\s+").map(_.toLowerCase).toSet
+    val relevantKeywords = status match {
+      case "open" => openKeywords
+      case "closed" => closedKeywords
+      case "busy" => busyKeywords
+      case _ => Set.empty[String]
+    }
+
+    val matchCount = words.intersect(relevantKeywords).size
+    if (matchCount > 0) {
+      confidence += 0.2
+    }
+
+    math.min(1.0, confidence)
+  }
+
 
 
