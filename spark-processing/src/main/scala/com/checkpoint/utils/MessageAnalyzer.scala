@@ -258,5 +258,12 @@ object MessageAnalyzer {
       !lower.matches("\\d+")
   }
 
+  private def generateCheckpointId(name: String): String = {
+    name.toLowerCase
+      .replaceAll("\\s+", "_")
+      .replaceAll("[^a-z0-9_\\u0600-\\u06FF]", "")
+  }
+
+
 
 
