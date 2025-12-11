@@ -192,5 +192,12 @@ object MessageAnalyzer {
     None
   }
 
+  private def detectCheckpointFromKnownList(text: String): Option[(String, String)] = {
+    checkpointNames.find { case (name, _) =>
+      text.contains(name.toLowerCase)
+    }.map { case (name, id) => (name, id) }
+  }
+
+
 
 
