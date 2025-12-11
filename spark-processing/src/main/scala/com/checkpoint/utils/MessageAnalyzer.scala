@@ -72,24 +72,56 @@ object MessageAnalyzer {
 
 
 
-def analyzeMessage(message: Message): Seq[CheckpointStatus] = {
-  val text = message.text.trim
-  val textLower = text.toLowerCase
+  def analyzeMessage(message: Message): Seq[CheckpointStatus] = {
+    val text = message.text.trim
+    val textLower = text.toLowerCase
 
 
-  val lines = text.split("\n").map(_.trim).filter(_.nonEmpty)
+    val lines = text.split("\n").map(_.trim).filter(_.nonEmpty)
 
 
-  val statusList = lines.flatMap { line =>
-    analyzeSingleLine(line, message)
-  }.toSeq
+    val statusList = lines.flatMap { line =>
+      analyzeSingleLine(line, message)
+    }.toSeq
 
-  if (statusList.isEmpty) {
-    analyzeSingleLine(text, message).toSeq
-  } else {
-    statusList
+    if (statusList.isEmpty) {
+      analyzeSingleLine(text, message).toSeq
+    } else {
+      statusList
+    }
   }
-}
+
+  private def analyzeSingleLine(line: String, message: Message): Seq[CheckpointStatus] = {
+    val lineLower = line.toLowerCase
+
+
+    val detectedCheckpoints = detectAllCheckpoints(lineLower)
+
+    if (detectedCheckpoints.isEmpty) {
+      return Seq.empty
+    }
+
+
+    val status = detectStatusFromEmojis(line)
+      .getOrElse(detectStatusFromWords(lineLower))
+
+    val direction = detectDirection(lineLower)
+    val finalStatus = combineStatusWithDirection(status, direction)
+    val confidence = calculateConfidence(line, lineLower, status)
+
+
+    detectedCheckpoints.map { case (checkpointName, checkpointId) =>
+      CheckpointStatus(
+        checkpointId = checkpointId,
+        checkpointName = checkpointName,
+        status = finalStatus,
+        location = None,
+        lastUpdated = new Timestamp(System.currentTimeMillis()),
+        messageContent = line,
+        confidence = confidence
+      )
+    }
+  }
 
 
 
