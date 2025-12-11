@@ -163,6 +163,12 @@ object MessageAnalyzer {
     checkpoints.toSeq.distinct
   }
 
+  private def detectCheckpoint(text: String): Option[(String, String)] = {
+    detectCheckpointByPattern(text)
+      .orElse(detectCheckpointFromKnownList(text))
+      .orElse(detectCheckpointByContext(text))
+  }
+
 
 
 
