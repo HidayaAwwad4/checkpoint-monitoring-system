@@ -346,5 +346,44 @@ object MessageAnalyzer {
     math.min(1.0, confidence)
   }
 
+  def testAnalyzer(): Unit = {
+    val testMessages = Seq(
+      "حوارة سالك بالإتجاهين ✅✅\nقلنديا مغلق ❌❌\nزعترة أزمة للخارج 🔴🔴🔴\nبيت ايل مفتوح للداخل ✅",
+      "✅✅ حاجز النفق بدون أزمة",
+      "❌❌ العروب الجنوبي للداخل والخارج محسوم",
+      "🔴🔴🔴 عوريتا للخارج أزمة",
+      "✅ للداخل سالك حوارة",
+      "حاجز قلنديا مغلق"
+    )
+
+    println("=" * 60)
+    println("Message Analyzer Test Results (Multi-Checkpoint)")
+    println("=" * 60)
+
+    testMessages.foreach { text =>
+      val message = Message(
+        messageId = "test",
+        text = text,
+        timestamp = new Timestamp(System.currentTimeMillis()),
+        channelId = "test"
+      )
+
+      val results = analyzeMessage(message)
+
+      println(s"\nMessage: $text")
+      if (results.isEmpty) {
+        println("❌ No checkpoints detected")
+      } else {
+        println(s"Found ${results.size} checkpoint(s):")
+        results.foreach { status =>
+          println(s"  - ${status.checkpointName}: ${status.status} (${(status.confidence * 100).formatted("%.0f")}%)")
+        }
+      }
+    }
+
+    println("\n" + "=" * 60)
+  }
+}
+
 
 
