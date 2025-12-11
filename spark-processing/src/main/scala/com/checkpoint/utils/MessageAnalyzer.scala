@@ -123,6 +123,45 @@ object MessageAnalyzer {
     }
   }
 
+  private def detectAllCheckpoints(text: String): Seq[(String, String)] = {
+    val checkpoints = scala.collection.mutable.ListBuffer[(String, String)]()
+
+
+    checkpointNames.foreach { case (name, id) =>
+      if (text.contains(name.toLowerCase)) {
+        checkpoints += ((name, id))
+      }
+    }
+
+
+    val patterns = Seq(
+      """حاجز\s+(\S+(?:\s+\S+)?)""",
+      """مدخل\s+(\S+(?:\s+\S+)?)""",
+      """بوابة\s+(\S+(?:\s+\S+)?)""",
+      """دوار\s+(\S+(?:\s+\S+)?)""",
+      """معبر\s+(\S+(?:\s+\S+)?)"""
+    )
+
+    patterns.foreach { pattern =>
+      val regex = pattern.r
+      regex.findAllMatchIn(text).foreach { m =>
+        val name = m.group(1).trim
+        val cleanName = cleanCheckpointName(name)
+        if (cleanName.nonEmpty && !checkpoints.exists(_._1 == cleanName)) {
+          val id = generateCheckpointId(cleanName)
+          checkpoints += ((cleanName, id))
+        }
+      }
+    }
+
+    if (checkpoints.isEmpty) {
+      detectCheckpointByContext(text).foreach { checkpoint =>
+        checkpoints += checkpoint
+      }
+    }
+
+    checkpoints.toSeq.distinct
+  }
 
 
 
