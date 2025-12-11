@@ -18,7 +18,10 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % "1.7.36",
 
   // Scala Async HTTP Client (for Telegram API)
-  "com.softwaremill.sttp.client3" %% "core" % "3.3.18"
+  "com.softwaremill.sttp.client3" %% "core" % "3.3.18",
+
+  // Dotenv Support for Scala
+  "io.github.cdimascio" %% "scala-dotenv" % "3.0.0"
 )
 
 scalacOptions ++= Seq(
