@@ -236,6 +236,16 @@ object MessageAnalyzer {
     None
   }
 
+  private def cleanCheckpointName(name: String): String = {
+    val cleanWords = name.split("\\s+").filterNot { word =>
+      val lower = word.toLowerCase
+      statusKeywords.contains(lower) ||
+        inboundKeywords.contains(lower) ||
+        outboundKeywords.contains(lower) ||
+        lower.matches("[✅❌🔴]+")
+    }
+    cleanWords.mkString(" ").trim
+  }
 
 
 
