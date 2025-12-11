@@ -169,6 +169,28 @@ object MessageAnalyzer {
       .orElse(detectCheckpointByContext(text))
   }
 
+  private def detectCheckpointByPattern(text: String): Option[(String, String)] = {
+    val patterns = Seq(
+      """حاجز\s+(\S+(?:\s+\S+)?)""",
+      """مدخل\s+(\S+(?:\s+\S+)?)""",
+      """بوابة\s+(\S+(?:\s+\S+)?)""",
+      """دوار\s+(\S+(?:\s+\S+)?)""",
+      """معبر\s+(\S+(?:\s+\S+)?)"""
+    )
+
+    patterns.foreach { pattern =>
+      val regex = pattern.r
+      regex.findFirstMatchIn(text).foreach { m =>
+        val name = m.group(1).trim
+        val cleanName = cleanCheckpointName(name)
+        if (cleanName.nonEmpty) {
+          val id = generateCheckpointId(cleanName)
+          return Some((cleanName, id))
+        }
+      }
+    }
+    None
+  }
 
 
 
