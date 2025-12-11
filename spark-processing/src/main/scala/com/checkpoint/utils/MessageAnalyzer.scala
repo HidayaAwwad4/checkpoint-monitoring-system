@@ -247,5 +247,16 @@ object MessageAnalyzer {
     cleanWords.mkString(" ").trim
   }
 
+  private def isValidCheckpointName(word: String): Boolean = {
+    val clean = word.replaceAll("[✅❌🔴،.]", "").trim
+    val lower = clean.toLowerCase
+
+    clean.length >= 3 &&
+      !statusKeywords.contains(lower) &&
+      !inboundKeywords.contains(lower) &&
+      !outboundKeywords.contains(lower) &&
+      !lower.matches("\\d+")
+  }
+
 
 
