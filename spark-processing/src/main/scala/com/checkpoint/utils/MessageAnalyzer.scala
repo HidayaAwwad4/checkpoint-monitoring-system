@@ -298,6 +298,22 @@ object MessageAnalyzer {
     }
   }
 
+  private def detectDirection(text: String): String = {
+    val words = text.split("\\s+").map(_.toLowerCase).toSet
+
+    val hasInbound = words.intersect(inboundKeywords).nonEmpty
+    val hasOutbound = words.intersect(outboundKeywords).nonEmpty
+
+    if (hasInbound && hasOutbound) {
+      "both"
+    } else if (hasInbound) {
+      "inbound"
+    } else if (hasOutbound) {
+      "outbound"
+    } else {
+      "both"
+    }
+  }
 
 
 
