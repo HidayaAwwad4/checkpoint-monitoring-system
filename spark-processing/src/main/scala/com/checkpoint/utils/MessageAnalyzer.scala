@@ -280,5 +280,24 @@ object MessageAnalyzer {
     }
   }
 
+  private def detectStatusFromWords(text: String): String = {
+    val words = text.split("\\s+").map(_.toLowerCase).toSet
+
+    val openCount = words.intersect(openKeywords).size
+    val closedCount = words.intersect(closedKeywords).size
+    val busyCount = words.intersect(busyKeywords).size
+
+    if (busyCount > 0) {
+      "busy"
+    } else if (closedCount > openCount) {
+      "closed"
+    } else if (openCount > 0) {
+      "open"
+    } else {
+      "unknown"
+    }
+  }
+
+
 
 
