@@ -38,4 +38,28 @@ class TelegramChannelScraper(botToken: String, chatId: String) {
         List.empty
     }
   }
+  private def parseUpdates(responseBody: String): List[TelegramMessage] = {
+    try {
+      implicit val formats: DefaultFormats.type = DefaultFormats
+      val json = parse(responseBody)
+
+      val ok = (json \ "ok").extract[Boolean]
+
+      if (ok) {
+        val updates = (json \ "result").extract[List[JValue]]
+
+        println(s"[DEBUG] Found ${updates.size} updates")
+
+        if (updates.nonEmpty) {
+          val maxUpdateId = updates.map(u => (u \ "update_id").extract[Long]).max
+          lastUpdateId = maxUpdateId + 1
+          println(s"[DEBUG] Updated lastUpdateId to: $lastUpdateId")
+        }
+
+
+      }
+    }
+  }
+
+
 
