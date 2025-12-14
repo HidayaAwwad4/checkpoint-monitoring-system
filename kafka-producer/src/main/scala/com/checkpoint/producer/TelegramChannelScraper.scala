@@ -38,6 +38,7 @@ class TelegramChannelScraper(botToken: String, chatId: String) {
         List.empty
     }
   }
+
   private def parseUpdates(responseBody: String): List[TelegramMessage] = {
     try {
       implicit val formats: DefaultFormats.type = DefaultFormats
@@ -54,69 +55,75 @@ class TelegramChannelScraper(botToken: String, chatId: String) {
           val maxUpdateId = updates.map(u => (u \ "update_id").extract[Long]).max
           lastUpdateId = maxUpdateId + 1
           println(s"[DEBUG] Updated lastUpdateId to: $lastUpdateId")
-          val messages = updates.flatMap { update =>
-            try {
-              val channelPost = (update \ "channel_post").extractOpt[JValue]
-
-              channelPost.flatMap { post =>
-                val messageId = (post \ "message_id").extract[Int].toString
-                val date = (post \ "date").extract[Long] * 1000
-
-                val text = (post \ "text").extractOpt[String]
-                val caption = (post \ "caption").extractOpt[String]
-
-                val hasPhoto = (post \ "photo").extractOpt[List[JValue]].exists(_.nonEmpty)
-                val hasVideo = (post \ "video").extractOpt[JValue].isDefined
-                val hasDocument = (post \ "document").extractOpt[JValue].isDefined
-
-                val hasMedia = hasPhoto || hasVideo || hasDocument
-
-                val finalText = text.orElse(caption).getOrElse("").trim
-
-                val mediaType = if (hasPhoto) "photo"
-                else if (hasVideo) "video"
-                else if (hasDocument) "document"
-                else "none"
-
-                if (finalText.nonEmpty) {
-                  val mediaInfo = if (hasMedia) s" [$mediaType with caption]" else ""
-                  println(s"[DEBUG] Message $messageId$mediaInfo - Text: ${finalText.take(50)}...")
-
-                  Some(TelegramMessage(
-                    messageId = messageId,
-                    text = finalText,
-                    timestamp = date,
-                    channelId = chatId
-                  ))
-                } else {
-                  if (hasMedia) {
-                    println(s"[DEBUG] Message $messageId [$mediaType] - Skipped (no text/caption)")
-                  } else {
-                    println(s"[DEBUG] Message $messageId - Skipped (no text)")
-                  }
-                  None
-                }
-              }
-            } catch {
-              case e: Exception =>
-                println(s"[ERROR] Error parsing update: ${e.getMessage}")
-                None
-            }
-          }
-
-          println(s"[DEBUG] Returning ${messages.size} messages (text/caption only)")
-          messages
-        } else {
-          val description = (json \ "description").extractOpt[String]
-          println(s"[ERROR] Telegram API returned ok=false: ${description.getOrElse("unknown error")}")
-          List.empty
         }
+
+        val messages = updates.flatMap { update =>
+          try {
+            val channelPost = (update \ "channel_post").extractOpt[JValue]
+
+            channelPost.flatMap { post =>
+              val messageId = (post \ "message_id").extract[Int].toString
+              val date = (post \ "date").extract[Long] * 1000
+
+              val text = (post \ "text").extractOpt[String]
+              val caption = (post \ "caption").extractOpt[String]
+
+              val hasPhoto = (post \ "photo").extractOpt[List[JValue]].exists(_.nonEmpty)
+              val hasVideo = (post \ "video").extractOpt[JValue].isDefined
+              val hasDocument = (post \ "document").extractOpt[JValue].isDefined
+
+              val hasMedia = hasPhoto || hasVideo || hasDocument
+
+              val finalText = text.orElse(caption).getOrElse("").trim
+
+              val mediaType = if (hasPhoto) "photo"
+              else if (hasVideo) "video"
+              else if (hasDocument) "document"
+              else "none"
+
+              if (finalText.nonEmpty) {
+                val mediaInfo = if (hasMedia) s" [$mediaType with caption]" else ""
+                println(s"[DEBUG] Message $messageId$mediaInfo - Text: ${finalText.take(50)}...")
+
+                Some(TelegramMessage(
+                  messageId = messageId,
+                  text = finalText,
+                  timestamp = date,
+                  channelId = chatId
+                ))
+              } else {
+                if (hasMedia) {
+                  println(s"[DEBUG] Message $messageId [$mediaType] - Skipped (no text/caption)")
+                } else {
+                  println(s"[DEBUG] Message $messageId - Skipped (no text)")
+                }
+                None
+              }
+            }
+          } catch {
+            case e: Exception =>
+              println(s"[ERROR] Error parsing update: ${e.getMessage}")
+              None
+          }
+        }
+
+        println(s"[DEBUG] Returning ${messages.size} messages (text/caption only)")
+        messages
+
+      } else {
+        val description = (json \ "description").extractOpt[String]
+        println(s"[ERROR] Telegram API returned ok=false: ${description.getOrElse("unknown error")}")
+        List.empty
       }
-
-
+    } catch {
+      case e: Exception =>
+        println(s"[ERROR] Error parsing updates: ${e.getMessage}")
+        e.printStackTrace()
+        List.empty
     }
-    }
+  }
 
-
-
-
+  def close(): Unit = {
+    backend.close()
+  }
+}
