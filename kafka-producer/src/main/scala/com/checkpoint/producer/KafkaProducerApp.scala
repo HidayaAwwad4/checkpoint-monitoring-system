@@ -61,3 +61,14 @@ object KafkaProducerApp {
             telegramMsg.messageId,
             kafkaMessage
           )
+          Try(producer.send(record).get()) match {
+            case Success(metadata) =>
+              messageCount += 1
+              println(s"[$messageCount] Message sent to Kafka")
+              println(s"    Topic: ${metadata.topic()}")
+              println(s"    Partition: ${metadata.partition()}")
+              println(s"    Offset: ${metadata.offset()}")
+              println(s"    Text: ${telegramMsg.text.take(50)}...")
+            case Failure(e) =>
+              println(s"Failed to send message: ${e.getMessage}")
+          }
