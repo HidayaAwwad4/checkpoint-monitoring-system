@@ -15,3 +15,14 @@ case class TelegramMessage(
 
 object MessageFormatter {
   implicit val formats: Formats = DefaultFormats
+
+
+  def toKafkaMessage(telegramMsg: TelegramMessage): String = {
+    write(Map(
+      "message_id" -> telegramMsg.messageId,
+      "text" -> telegramMsg.text,
+      "timestamp" -> telegramMsg.timestamp,
+      "channel_id" -> telegramMsg.channelId,
+      "metadata" -> telegramMsg.metadata
+    ))
+  }
