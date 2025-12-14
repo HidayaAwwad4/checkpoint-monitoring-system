@@ -22,5 +22,20 @@ class TelegramChannelScraper(botToken: String, chatId: String) {
         .response(asString)
 
       val response = request.send(backend)
+
+      response.body match {
+        case Right(body) =>
+          println(s"[DEBUG] Got response")
+          parseUpdates(body)
+        case Left(error) =>
+          println(s"[ERROR] Error fetching updates: $error")
+          List.empty
+      }
+    } catch {
+      case e: Exception =>
+        println(s"[ERROR] Exception in getLatestMessages: ${e.getMessage}")
+        e.printStackTrace()
+        List.empty
+    }
   }
 
