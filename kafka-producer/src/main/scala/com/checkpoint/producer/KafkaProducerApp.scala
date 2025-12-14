@@ -31,3 +31,8 @@ object KafkaProducerApp {
 
     val producer = new KafkaProducer[String, String](kafkaProps)
     val topic = config.getString("kafka.topic")
+
+    val botToken = config.getString("telegram.bot.token")
+    val chatId = config.getString("telegram.chat.id")
+    val scraper = new TelegramChannelScraper(botToken, chatId)
+    val pollInterval = config.getInt("telegram.poll.interval.seconds") * 1000
