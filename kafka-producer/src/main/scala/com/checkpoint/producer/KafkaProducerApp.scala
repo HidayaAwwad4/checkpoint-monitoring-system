@@ -36,3 +36,11 @@ object KafkaProducerApp {
     val chatId = config.getString("telegram.chat.id")
     val scraper = new TelegramChannelScraper(botToken, chatId)
     val pollInterval = config.getInt("telegram.poll.interval.seconds") * 1000
+
+    println(s"Kafka Producer started")
+    println(s"Topic: $topic")
+    println(s"Bootstrap Servers: ${config.getString("kafka.bootstrap.servers")}")
+    println(s"Chat ID: $chatId")
+    println(s"Polling every ${pollInterval / 1000} seconds")
+    println("=" * 70)
+    println("Waiting for messages...\n")
