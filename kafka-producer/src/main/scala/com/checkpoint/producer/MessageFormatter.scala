@@ -14,8 +14,8 @@ case class TelegramMessage(
                           )
 
 object MessageFormatter {
-  implicit val formats: Formats = DefaultFormats
 
+  implicit val formats: Formats = DefaultFormats
 
   def toKafkaMessage(telegramMsg: TelegramMessage): String = {
     write(Map(
@@ -26,3 +26,38 @@ object MessageFormatter {
       "metadata" -> telegramMsg.metadata
     ))
   }
+
+  def parseTelegramUpdate(updateJson: String): Option[TelegramMessage] = {
+    try {
+      implicit val formats: DefaultFormats.type = DefaultFormats
+      val json = parse(updateJson)
+
+      val message = (json \ "message").extractOpt[JValue]
+        .orElse((json \ "channel_post").extractOpt[JValue])
+
+      message.flatMap { msg =>
+        val messageId = (msg \ "message_id").extract[Int].toString
+        val text = (msg \ "text").extractOpt[String].getOrElse("")
+        val timestamp = (msg \ "date").extract[Long] * 1000
+        val channelId = (msg \ "chat" \ "username").extractOpt[String]
+          .orElse((msg \ "chat" \ "title").extractOpt[String])
+          .getOrElse("unknown")
+
+        if (text.nonEmpty) {
+          Some(TelegramMessage(
+            messageId = messageId,
+            text = text,
+            timestamp = timestamp,
+            channelId = channelId
+          ))
+        } else {
+          None
+        }
+      }
+    } catch {
+      case e: Exception =>
+        println(s"Error parsing Telegram update: ${e.getMessage}")
+        None
+    }
+  }
+}
