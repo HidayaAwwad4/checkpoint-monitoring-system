@@ -3,6 +3,8 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 import com.typesafe.config.ConfigFactory
+import org.apache.kafka.clients.producer.ProducerRecord
+import scala.util.{Try, Success, Failure}
 
 object KafkaProducerApp {
 
@@ -44,3 +46,18 @@ object KafkaProducerApp {
     println(s"Polling every ${pollInterval / 1000} seconds")
     println("=" * 70)
     println("Waiting for messages...\n")
+
+    var running = true
+    var messageCount = 0
+
+    while (running) {
+      try {
+        val messages = scraper.getLatestMessages()
+
+        messages.foreach { telegramMsg =>
+          val kafkaMessage = MessageFormatter.toKafkaMessage(telegramMsg)
+          val record = new ProducerRecord[String, String](
+            topic,
+            telegramMsg.messageId,
+            kafkaMessage
+          )
