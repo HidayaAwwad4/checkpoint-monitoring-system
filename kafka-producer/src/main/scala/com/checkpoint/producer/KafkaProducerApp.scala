@@ -72,3 +72,21 @@ object KafkaProducerApp {
             case Failure(e) =>
               println(s"Failed to send message: ${e.getMessage}")
           }
+          Thread.sleep(pollInterval)
+
+        } catch {
+          case e: InterruptedException =>
+            println("Producer interrupted")
+            running = false
+          case e: Exception =>
+            println(s"Error in main loop: ${e.getMessage}")
+            Thread.sleep(5000)
+        }
+
+        sys.addShutdownHook {
+          println("\nShutting down...")
+          running = false
+          scraper.close()
+          producer.close()
+          println("Producer closed")
+        }
