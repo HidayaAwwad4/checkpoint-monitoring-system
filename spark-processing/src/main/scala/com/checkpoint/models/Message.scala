@@ -1,18 +1,6 @@
 package com.checkpoint.models
 
 import java.sql.Timestamp
-
-case class Message(
-                    messageId: String,
-                    text: String,
-                    timestamp: Timestamp,
-                    channelId: String,
-                    metadata: Map[String, String] = Map.empty
-                  )
-package com.checkpoint.models
-
-import java.sql.Timestamp
-
 case class Message(
                     messageId: String,
                     text: String,
@@ -22,7 +10,6 @@ case class Message(
                   )
 
 object Message {
-
   def fromJsonString(json: String): Message = {
 
     import org.json4s._
@@ -37,10 +24,11 @@ object Message {
       text = (parsed \ "text").extract[String],
       timestamp = new Timestamp((parsed \ "timestamp").extract[Long]),
       channelId = (parsed \ "channel_id").extract[String],
-      metadata = (parsed \ "metadata")
-        .extractOpt[Map[String, String]]
-        .getOrElse(Map.empty)
+      metadata = (parsed \ "metadata").extractOpt[Map[String, String]].getOrElse(Map.empty)
     )
   }
 
+  def generateHash(message: Message): String = {
+    s"${message.messageId}_${message.channelId}_${message.timestamp.getTime}"
+  }
 }
