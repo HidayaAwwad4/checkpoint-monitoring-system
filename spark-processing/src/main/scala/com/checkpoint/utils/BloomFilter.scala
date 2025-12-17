@@ -44,3 +44,29 @@ class BloomFilter(expectedElements: Int, falsePositiveRate: Double = 0.01) exten
     val k = (m.toDouble / n) * math.log(2)
     math.ceil(k).toInt
   }
+
+  def getStats: String = {
+    s"""
+       |Bloom Filter Statistics:
+       |------------------------
+       |Expected Elements: $expectedElements
+       |False Positive Rate: ${falsePositiveRate * 100}%
+       |Bit Array Size: $numBits bits (${numBits / 8} bytes)
+       |Number of Hash Functions: $numHashFunctions
+       |Elements Added: $elementCount
+       |Fill Ratio: ${(elementCount.toDouble / expectedElements * 100).formatted("%.2f")}%
+       |""".stripMargin
+  }
+
+  def clear(): Unit = {
+    bitSet.clear()
+    elementCount = 0
+  }
+}
+
+object BloomFilter {
+
+  def apply(expectedElements: Int = 10000, falsePositiveRate: Double = 0.01): BloomFilter = {
+    new BloomFilter(expectedElements, falsePositiveRate)
+  }
+}
