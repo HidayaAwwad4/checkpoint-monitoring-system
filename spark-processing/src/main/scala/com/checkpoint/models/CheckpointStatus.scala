@@ -26,4 +26,17 @@ object CheckpointStatus {
     )
   }
 
+  def toJson(status: CheckpointStatus): String = {
+    s"""
+    {
+      "checkpoint_id": "${status.checkpointId}",
+      "checkpoint_name": "${status.checkpointName}",
+      "status": "${status.status}",
+      "location": "${status.location.getOrElse("")}",
+      "last_updated": "${status.lastUpdated}",
+      "message_content": "${status.messageContent}",
+      "confidence": ${status.confidence}
+    }
+    """
+  }
 }
