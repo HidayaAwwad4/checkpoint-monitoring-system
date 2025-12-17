@@ -13,3 +13,34 @@ class BloomFilter(expectedElements: Int, falsePositiveRate: Double = 0.01) exten
   private val bitSet: BitSet = new BitSet(numBits)
 
   private var elementCount: Int = 0
+
+  def add(item: String): Unit = {
+    val hashes = getHashes(item)
+    hashes.foreach { hash =>
+      bitSet.set(Math.abs(hash % numBits))
+    }
+    elementCount += 1
+  }
+
+  def mightContain(item: String): Boolean = {
+    val hashes = getHashes(item)
+    hashes.forall { hash =>
+      bitSet.get(Math.abs(hash % numBits))
+    }
+  }
+
+  private def getHashes(item: String): Seq[Int] = {
+    (1 to numHashFunctions).map { i =>
+      MurmurHash3.stringHash(item, i)
+    }
+  }
+
+  private def optimalNumBits(n: Int, p: Double): Int = {
+    val m = -1 * n * math.log(p) / math.pow(math.log(2), 2)
+    math.ceil(m).toInt
+  }
+
+  private def optimalNumHashFunctions(n: Int, m: Int): Int = {
+    val k = (m.toDouble / n) * math.log(2)
+    math.ceil(k).toInt
+  }
