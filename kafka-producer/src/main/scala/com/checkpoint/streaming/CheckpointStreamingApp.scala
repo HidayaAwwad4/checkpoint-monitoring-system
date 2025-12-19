@@ -110,7 +110,50 @@ object CheckpointStreamingApp {
     query.awaitTermination()
   }
 
+  private def upsertToMongoDB(
+                               batchDS: org.apache.spark.sql.Dataset[CheckpointStatus],
+                               config: com.typesafe.config.Config
+                             ): Unit = {
+    import batchDS.sparkSession.implicits._
 
+    val mongoUri = config.getString("mongodb.uri")
+    val database = config.getString("mongodb.database")
+    val collection = config.getString("mongodb.collection")
+
+    batchDS.rdd.foreachPartition { partition =>
+      import com.mongodb.client.MongoClients
+      import com.mongodb.client.model.{UpdateOptions, Filters, Updates}
+      import org.bson.Document
+
+      val mongoClient = MongoClients.create(mongoUri)
+      val db = mongoClient.getDatabase(database)
+      val coll = db.getCollection(collection)
+
+      partition.foreach { status =>
+        try {
+          val filter = Filters.eq("checkpointId", status.checkpointId)
+          val update = Updates.combine(
+            Updates.set("checkpointName", status.checkpointName),
+            Updates.set("status", status.status),
+            Updates.set("lastUpdated", status.lastUpdated),
+            Updates.set("messageContent", status.messageContent),
+            Updates.set("confidence", status.confidence)
+          )
+
+          val options = new UpdateOptions().upsert(true)
+
+          coll.updateOne(filter, update, options)
+
+          println(s"  âœ“ Upserted: ${status.checkpointName} (${status.status})")
+        } catch {
+          case e: Exception =>
+            println(s"  âœ— Error upserting ${status.checkpointName}: ${e.getMessage}")
+        }
+      }
+
+      mongoClient.close()
+    }
+  }
 
 
 }
