@@ -45,9 +45,49 @@ object CheckpointStreamingApp {
     val kafkaBootstrapServers = config.getString("kafka.bootstrap.servers")
     val kafkaTopic = config.getString("kafka.topic")
 
+    val kafkaDF = spark.readStream
+      .format("kafka")
+      .option("kafka.bootstrap.servers", kafkaBootstrapServers)
+      .option("subscribe", kafkaTopic)
+      .option("startingOffsets", "earliest")
+      .load()
 
+    val messagesDF = kafkaDF
+      .selectExpr("CAST(value AS STRING) as json")
+      .as[String]
+
+    val processedDF = messagesDF
+      .flatMap { jsonStr =>
+        try {
+          val message = parseMessage(jsonStr)
+
+          val messageHash = Message.generateHash(message)
+
+          if (bloomFilter.mightContain(messageHash)) {
+            println(s"Duplicate message detected (Bloom Filter): ${message.messageId}")
+            Seq.empty[CheckpointStatus]
+          } else {
+            bloomFilter.add(messageHash)
+
+            val results = MessageAnalyzer.analyzeMessage(message)
+
+            if (results.isEmpty) {
+              println(s"No checkpoint detected in message: ${message.text.take(50)}...")
+              Seq.empty[CheckpointStatus]
+            } else {
+              results.foreach { status =>
+                println(s"Processed: ${status.checkpointName} - ${status.status}")
+              }
+              results
+            }
+          }
+        } catch {
+          case e: Exception =>
+            println(s"Error processing message: ${e.getMessage}")
+            Seq.empty[CheckpointStatus]
+        }
+      }
   }
-
 
 
 
