@@ -154,4 +154,21 @@ object CheckpointStreamingApp {
       mongoClient.close()
     }
   }
+
+  private def parseMessage(jsonStr: String): Message = {
+    import org.json4s._
+    import org.json4s.native.JsonMethods._
+
+    implicit val formats: DefaultFormats.type = DefaultFormats
+
+    val json = parse(jsonStr)
+
+    Message(
+      messageId = (json \ "message_id").extract[String],
+      text = (json \ "text").extract[String],
+      timestamp = new Timestamp((json \ "timestamp").extract[Long]),
+      channelId = (json \ "channel_id").extract[String],
+      metadata = (json \ "metadata").extractOpt[Map[String, String]].getOrElse(Map.empty)
+    )
+  }
 }
