@@ -4,12 +4,12 @@ import com.checkpoint.models.{CheckpointStatus, Message}
 import com.checkpoint.utils.{BloomFilter, MessageAnalyzer}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
-
+import org.apache.spark.sql.streaming.Trigger
 import com.typesafe.config.ConfigFactory
-
-
-
-
+import java.sql.Timestamp
+import com.mongodb.spark.MongoSpark
+import com.mongodb.spark.config.WriteConfig
+import org.bson.Document
 
 object CheckpointStreamingApp {
 
@@ -88,12 +88,29 @@ object CheckpointStreamingApp {
         }
       }
 
+    val query = processedDF.writeStream
+      .foreachBatch { (batchDS: org.apache.spark.sql.Dataset[CheckpointStatus], batchId: Long) =>
+        if (!batchDS.isEmpty) {
+          val count = batchDS.count()
+          println(s"\nProcessing batch $batchId with $count records")
 
+
+          upsertToMongoDB(batchDS, config)
+
+          println(s"Batch $batchId saved to MongoDB ($count checkpoints)\n")
+        }
+      }
+      .trigger(Trigger.ProcessingTime(s"${config.getInt("spark.streaming.batch.interval")} seconds"))
+      .option("checkpointLocation", config.getString("spark.streaming.checkpoint.location"))
+      .start()
+
+    println("\nStreaming application started successfully!")
+    println("Waiting for messages from Kafka...\n")
+
+    query.awaitTermination()
   }
 
 
 
 
-  }
-
-
+}
