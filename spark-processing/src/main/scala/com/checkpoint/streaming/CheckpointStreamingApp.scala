@@ -87,6 +87,27 @@ object CheckpointStreamingApp {
             Seq.empty[CheckpointStatus]
         }
       }
+
+    val query = processedDF.writeStream
+      .foreachBatch { (batchDS: org.apache.spark.sql.Dataset[CheckpointStatus], batchId: Long) =>
+        if (!batchDS.isEmpty) {
+          val count = batchDS.count()
+          println(s"\nProcessing batch $batchId with $count records")
+
+
+          upsertToMongoDB(batchDS, config)
+
+          println(s"Batch $batchId saved to MongoDB ($count checkpoints)\n")
+        }
+      }
+      .trigger(Trigger.ProcessingTime(s"${config.getInt("spark.streaming.batch.interval")} seconds"))
+      .option("checkpointLocation", config.getString("spark.streaming.checkpoint.location"))
+      .start()
+
+    println("\nStreaming application started successfully!")
+    println("Waiting for messages from Kafka...\n")
+
+    query.awaitTermination()
   }
 
 
