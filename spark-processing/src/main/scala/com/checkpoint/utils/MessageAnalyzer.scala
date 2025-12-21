@@ -271,19 +271,32 @@ object MessageAnalyzer {
     }
 
     val direction = detectDirection(segment)
-    val finalStatus = combineStatusWithDirection(status, direction)
     val confidence = calculateConfidence(segment, segmentLower, status, direction)
+    val timestamp = new Timestamp(System.currentTimeMillis())
 
     detectedCheckpoints.map { case (checkpointName, checkpointId) =>
-      CheckpointStatus(
-        checkpointId = checkpointId,
-        checkpointName = checkpointName,
-        status = finalStatus,
-        location = None,
-        lastUpdated = new Timestamp(System.currentTimeMillis()),
-        messageContent = segment,
-        confidence = confidence
-      )
+      direction match {
+        case "both" =>
+          CheckpointStatus.createWithBothDirections(
+            checkpointId = checkpointId,
+            checkpointName = checkpointName,
+            status = status,
+            timestamp = timestamp,
+            messageContent = segment,
+            confidence = confidence
+          )
+
+        case "inbound" | "outbound" =>
+          CheckpointStatus.createWithSingleDirection(
+            checkpointId = checkpointId,
+            checkpointName = checkpointName,
+            status = status,
+            direction = direction,
+            timestamp = timestamp,
+            messageContent = segment,
+            confidence = confidence
+          )
+      }
     }
   }
   private def processLineSegmentWithGlobalStatus(
@@ -312,19 +325,32 @@ object MessageAnalyzer {
       globalDirection
     }
 
-    val finalStatus = combineStatusWithDirection(finalStatusWord, finalDirection)
     val confidence = calculateConfidence(segment, segmentLower, finalStatusWord, finalDirection)
+    val timestamp = new Timestamp(System.currentTimeMillis())
 
     detectedCheckpoints.map { case (checkpointName, checkpointId) =>
-      CheckpointStatus(
-        checkpointId = checkpointId,
-        checkpointName = checkpointName,
-        status = finalStatus,
-        location = None,
-        lastUpdated = new Timestamp(System.currentTimeMillis()),
-        messageContent = segment,
-        confidence = confidence
-      )
+      finalDirection match {
+        case "both" =>
+          CheckpointStatus.createWithBothDirections(
+            checkpointId = checkpointId,
+            checkpointName = checkpointName,
+            status = finalStatusWord,
+            timestamp = timestamp,
+            messageContent = segment,
+            confidence = confidence
+          )
+
+        case "inbound" | "outbound" =>
+          CheckpointStatus.createWithSingleDirection(
+            checkpointId = checkpointId,
+            checkpointName = checkpointName,
+            status = finalStatusWord,
+            direction = finalDirection,
+            timestamp = timestamp,
+            messageContent = segment,
+            confidence = confidence
+          )
+      }
     }
   }
 
