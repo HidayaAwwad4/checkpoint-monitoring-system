@@ -299,6 +299,7 @@ object MessageAnalyzer {
       }
     }
   }
+
   private def processLineSegmentWithGlobalStatus(
                                                   segment: String,
                                                   message: Message,
@@ -420,6 +421,7 @@ object MessageAnalyzer {
 
     checkpoints.toSeq.distinct
   }
+
   private def findSimilarCheckpoint(text: String): Option[(String, String)] = {
     val words = text.split("\\s+")
 
@@ -575,14 +577,6 @@ object MessageAnalyzer {
     }
   }
 
-  private def combineStatusWithDirection(status: String, direction: String): String = {
-    if (direction == "both") {
-      status
-    } else {
-      s"${status}_${direction}"
-    }
-  }
-
   private def calculateConfidence(text: String, textLower: String, status: String, direction: String): Double = {
     var confidence = 0.4
 
@@ -592,9 +586,9 @@ object MessageAnalyzer {
 
     val words = textLower.split("\\s+").map(_.toLowerCase).toSet
     val relevantKeywords = status match {
-      case s if s.startsWith("open") => openKeywords
-      case s if s.startsWith("closed") => closedKeywords
-      case s if s.startsWith("busy") => busyKeywords
+      case "open" => openKeywords
+      case "closed" => closedKeywords
+      case "busy" => busyKeywords
       case _ => Set.empty[String]
     }
 
@@ -612,7 +606,7 @@ object MessageAnalyzer {
 
   private def removeDuplicates(statuses: Seq[CheckpointStatus]): Seq[CheckpointStatus] = {
     statuses
-      .groupBy(s => (s.checkpointId, s.status))
+      .groupBy(s => (s.checkpointId, s.generalStatus, s.inboundStatus.status, s.outboundStatus.status))
       .map { case (_, group) => group.head }
       .toSeq
   }
@@ -640,7 +634,7 @@ object MessageAnalyzer {
     )
 
     println("=" * 70)
-    println("Message Analyzer - All Issues Fixed")
+    println("Message Analyzer - Updated for New CheckpointStatus Structure")
     println("=" * 70)
 
     testMessages.zipWithIndex.foreach { case (text, idx) =>
@@ -660,7 +654,12 @@ object MessageAnalyzer {
       } else {
         println(s"✅ Found ${results.size} checkpoint(s):")
         results.foreach { status =>
-          println(s"  - ${status.checkpointName}: ${status.status} (${(status.confidence * 100).formatted("%.0f")}%)")
+          val directionInfo = if (status.inboundStatus.status == status.outboundStatus.status) {
+            s"${status.generalStatus}"
+          } else {
+            s"${status.generalStatus} (in: ${status.inboundStatus.status}, out: ${status.outboundStatus.status})"
+          }
+          println(s"  - ${status.checkpointName}: $directionInfo (${(status.confidence * 100).formatted("%.0f")}%)")
         }
       }
     }
