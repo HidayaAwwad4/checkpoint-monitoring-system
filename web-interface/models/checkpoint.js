@@ -30,7 +30,9 @@ class CheckpointModel {
                     $project: {
                         checkpointId: 1,
                         checkpointName: 1,
-                        status: 1,
+                        generalStatus: 1,
+                        inboundStatus: 1,
+                        outboundStatus: 1,
                         lastUpdated: 1,
                         messageContent: 1,
                         confidence: 1
@@ -88,21 +90,47 @@ class CheckpointModel {
             open: 0,
             closed: 0,
             busy: 0,
-            byStatus: {}
+            mixed: 0,
+            partial: 0,
+            byStatus: {},
+            byDirection: {
+                inbound: { open: 0, closed: 0, busy: 0, unknown: 0 },
+                outbound: { open: 0, closed: 0, busy: 0, unknown: 0 }
+            }
         };
 
         latestCheckpoints.forEach(checkpoint => {
-            const status = checkpoint.status.toLowerCase();
+            const general = checkpoint.generalStatus?.toLowerCase() || 'unknown';
 
-            if (status.includes('open')) {
+            // إحصائيات عامة
+            if (general.includes('open')) {
                 stats.open++;
-            } else if (status.includes('closed')) {
+            } else if (general.includes('closed')) {
                 stats.closed++;
-            } else if (status.includes('busy')) {
+            } else if (general.includes('busy')) {
                 stats.busy++;
+            } else if (general === 'mixed') {
+                stats.mixed++;
+            } else if (general === 'partial') {
+                stats.partial++;
             }
 
-            stats.byStatus[checkpoint.status] = (stats.byStatus[checkpoint.status] || 0) + 1;
+            stats.byStatus[checkpoint.generalStatus] = (stats.byStatus[checkpoint.generalStatus] || 0) + 1;
+
+            // إحصائيات الاتجاهات
+            if (checkpoint.inboundStatus) {
+                const inStatus = checkpoint.inboundStatus.status?.toLowerCase() || 'unknown';
+                if (stats.byDirection.inbound[inStatus] !== undefined) {
+                    stats.byDirection.inbound[inStatus]++;
+                }
+            }
+
+            if (checkpoint.outboundStatus) {
+                const outStatus = checkpoint.outboundStatus.status?.toLowerCase() || 'unknown';
+                if (stats.byDirection.outbound[outStatus] !== undefined) {
+                    stats.byDirection.outbound[outStatus]++;
+                }
+            }
         });
 
         return stats;
@@ -140,9 +168,11 @@ class CheckpointModel {
         return results;
     }
 
-    // Filter checkpoints by status
+    // Filter checkpoints by status (supports directional filtering)
     static async filterByStatus(statusFilter) {
         const collection = this.getCollection();
+
+        const filterLower = statusFilter.toLowerCase();
 
         const results = await collection
             .aggregate([
@@ -160,7 +190,11 @@ class CheckpointModel {
                 },
                 {
                     $match: {
-                        status: { $regex: statusFilter, $options: 'i' }
+                        $or: [
+                            { generalStatus: { $regex: statusFilter, $options: 'i' } },
+                            { 'inboundStatus.status': { $regex: statusFilter, $options: 'i' } },
+                            { 'outboundStatus.status': { $regex: statusFilter, $options: 'i' } }
+                        ]
                     }
                 }
             ])
