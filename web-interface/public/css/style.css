@@ -120,6 +120,7 @@ body {
     font-size: 0.95rem;
 }
 
+/* Filters Section */
 .filters-container {
     background-color: white;
     border-radius: 16px;
@@ -203,6 +204,7 @@ body {
     color: var(--text-secondary);
 }
 
+/* Loading */
 .loading {
     text-align: center;
     padding: 3rem;
@@ -224,6 +226,7 @@ body {
     100% { transform: rotate(360deg); }
 }
 
+/* Error Message */
 .error-message {
     background-color: #fee2e2;
     border: 1px solid var(--danger-color);
@@ -234,6 +237,7 @@ body {
     margin-bottom: 2rem;
 }
 
+/* Checkpoints Grid */
 .checkpoints-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -318,6 +322,7 @@ body {
     min-height: 2.7rem;
 }
 
+/* No Results */
 .no-results {
     text-align: center;
     padding: 3rem;
@@ -328,6 +333,7 @@ body {
     box-shadow: var(--shadow);
 }
 
+/* Modal */
 .modal {
     display: none;
     position: fixed;
@@ -460,6 +466,7 @@ body {
     line-height: 1.5;
 }
 
+/* Responsive */
 @media (max-width: 1024px) {
     .checkpoints-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -506,6 +513,7 @@ body {
     }
 }
 
+/* Header with stats (NEW) */
 .header-with-stats {
     background-color: white;
     border-radius: 16px;
@@ -541,5 +549,119 @@ body {
 
     .header-right {
         justify-content: space-between;
+    }
+}
+
+/* Status badge for unknown */
+.status-badge.status-unknown {
+    background-color: #f3f4f6;
+    color: var(--text-secondary);
+}
+
+.status-unknown .status-indicator {
+    background-color: var(--text-secondary);
+}
+
+/* Directional status display */
+.direction-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.direction-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.direction-label {
+    min-width: 60px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Warning badge for stale data */
+.stale-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--warning-color);
+    background-color: #fef3c7;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    margin-right: 0.5rem;
+}
+
+/* Mixed status indicator */
+.status-badge.status-mixed {
+    background-color: #e0e7ff;
+    color: #6366f1;
+}
+
+.status-mixed .status-indicator {
+    background: linear-gradient(90deg, #10b981 0%, #ef4444 100%);
+}
+
+/* Partial status indicator */
+.status-badge.status-partial {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-partial .status-indicator {
+    background: linear-gradient(90deg, #10b981 0%, #9ca3af 100%);
+}
+
+/* Checkpoint footer */
+.checkpoint-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Enhanced modal for directional display */
+.modal-direction-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1rem 0;
+}
+
+.modal-direction-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+}
+
+.modal-direction-label {
+    min-width: 80px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Responsive adjustments for directional display */
+@media (max-width: 768px) {
+    .direction-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .direction-label {
+        min-width: auto;
+    }
+
+    .modal-direction-row {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

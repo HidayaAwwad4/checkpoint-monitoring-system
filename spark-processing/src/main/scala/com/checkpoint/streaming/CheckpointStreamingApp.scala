@@ -1,6 +1,6 @@
 package com.checkpoint.streaming
 
-import com.checkpoint.models.{CheckpointStatus, Message}
+import com.checkpoint.models.{CheckpointStatus, DirectionStatus, Message}
 import com.checkpoint.utils.{BloomFilter, MessageAnalyzer}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
@@ -60,7 +60,6 @@ object CheckpointStreamingApp {
       .flatMap { jsonStr =>
         try {
           val message = parseMessage(jsonStr)
-
           val messageHash = Message.generateHash(message)
 
           if (bloomFilter.mightContain(messageHash)) {
@@ -68,7 +67,6 @@ object CheckpointStreamingApp {
             Seq.empty[CheckpointStatus]
           } else {
             bloomFilter.add(messageHash)
-
             val results = MessageAnalyzer.analyzeMessage(message)
 
             if (results.isEmpty) {
@@ -76,7 +74,8 @@ object CheckpointStreamingApp {
               Seq.empty[CheckpointStatus]
             } else {
               results.foreach { status =>
-                println(s"Processed: ${status.checkpointName} - ${status.status}")
+                println(s"Processed: ${status.checkpointName} - ${status.generalStatus} " +
+                  s"(↓${status.inboundStatus.status} ↑${status.outboundStatus.status})")
               }
               results
             }
@@ -93,7 +92,6 @@ object CheckpointStreamingApp {
         if (!batchDS.isEmpty) {
           val count = batchDS.count()
           println(s"\nProcessing batch $batchId with $count records")
-
 
           upsertToMongoDB(batchDS, config)
 
@@ -134,11 +132,14 @@ object CheckpointStreamingApp {
           val filter = Filters.eq("checkpointId", newStatus.checkpointId)
           val existingDoc = coll.find(filter).first()
 
+          // دمج الحالة الجديدة مع القديمة
           val finalStatus = if (existingDoc != null) {
             mergeStatuses(existingDoc, newStatus)
           } else {
             newStatus
           }
+
+          // تحديث MongoDB
           val update = Updates.combine(
             Updates.set("checkpointName", finalStatus.checkpointName),
             Updates.set("generalStatus", finalStatus.generalStatus),
@@ -152,7 +153,6 @@ object CheckpointStreamingApp {
               .append("lastUpdated", finalStatus.outboundStatus.lastUpdated)
               .append("isRecent", finalStatus.outboundStatus.isRecent)
             ),
-
             Updates.set("lastUpdated", finalStatus.lastUpdated),
             Updates.set("messageContent", finalStatus.messageContent),
             Updates.set("confidence", finalStatus.confidence)
@@ -162,7 +162,7 @@ object CheckpointStreamingApp {
           coll.updateOne(filter, update, options)
 
           println(s"  ✓ Upserted: ${finalStatus.checkpointName} " +
-            s"(↓${finalStatus.inboundStatus.status} ↑${finalStatus.outboundStatus.status})")
+            s"(General:${finalStatus.generalStatus} ↓${finalStatus.inboundStatus.status} ↑${finalStatus.outboundStatus.status})")
 
         } catch {
           case e: Exception =>
@@ -175,10 +175,9 @@ object CheckpointStreamingApp {
   }
 
   private def mergeStatuses(existingDoc: org.bson.Document, newStatus: CheckpointStatus): CheckpointStatus = {
-    import com.checkpoint.models.DirectionStatus
+    val oneHourAgo = new Timestamp(System.currentTimeMillis() - 3600000) // ساعة
 
-    val oneHourAgo = new Timestamp(System.currentTimeMillis() - 3600000)
-
+    // قراءة الحالات القديمة من MongoDB
     val oldInbound = Option(existingDoc.get("inboundStatus", classOf[Document])).map { doc =>
       DirectionStatus(
         status = doc.getString("status"),
@@ -195,12 +194,13 @@ object CheckpointStreamingApp {
       )
     }
 
+    // دمج الحالات: لو الجديد unknown، خلي القديم
     val finalInbound = if (newStatus.inboundStatus.status != "unknown") {
       newStatus.inboundStatus.copy(isRecent = true)
     } else {
       oldInbound.map { old =>
         old.copy(isRecent = old.lastUpdated.after(oneHourAgo))
-      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, false))
+      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, isRecent = false))
     }
 
     val finalOutbound = if (newStatus.outboundStatus.status != "unknown") {
@@ -208,8 +208,10 @@ object CheckpointStreamingApp {
     } else {
       oldOutbound.map { old =>
         old.copy(isRecent = old.lastUpdated.after(oneHourAgo))
-      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, false))
+      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, isRecent = false))
     }
+
+    // حساب الحالة العامة
     val finalGeneral = (finalInbound.status, finalOutbound.status) match {
       case (s1, s2) if s1 == s2 && s1 != "unknown" => s1
       case ("unknown", s) if s != "unknown" => "partial"
