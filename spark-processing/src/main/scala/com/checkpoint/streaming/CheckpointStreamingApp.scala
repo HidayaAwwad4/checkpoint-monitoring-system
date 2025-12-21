@@ -129,30 +129,106 @@ object CheckpointStreamingApp {
       val db = mongoClient.getDatabase(database)
       val coll = db.getCollection(collection)
 
-      partition.foreach { status =>
+      partition.foreach { newStatus =>
         try {
-          val filter = Filters.eq("checkpointId", status.checkpointId)
+          val filter = Filters.eq("checkpointId", newStatus.checkpointId)
+          val existingDoc = coll.find(filter).first()
+
+          val finalStatus = if (existingDoc != null) {
+            mergeStatuses(existingDoc, newStatus)
+          } else {
+            newStatus
+          }
           val update = Updates.combine(
-            Updates.set("checkpointName", status.checkpointName),
-            Updates.set("status", status.status),
-            Updates.set("lastUpdated", status.lastUpdated),
-            Updates.set("messageContent", status.messageContent),
-            Updates.set("confidence", status.confidence)
+            Updates.set("checkpointName", finalStatus.checkpointName),
+            Updates.set("generalStatus", finalStatus.generalStatus),
+            Updates.set("inboundStatus", new Document()
+              .append("status", finalStatus.inboundStatus.status)
+              .append("lastUpdated", finalStatus.inboundStatus.lastUpdated)
+              .append("isRecent", finalStatus.inboundStatus.isRecent)
+            ),
+            Updates.set("outboundStatus", new Document()
+              .append("status", finalStatus.outboundStatus.status)
+              .append("lastUpdated", finalStatus.outboundStatus.lastUpdated)
+              .append("isRecent", finalStatus.outboundStatus.isRecent)
+            ),
+
+            Updates.set("lastUpdated", finalStatus.lastUpdated),
+            Updates.set("messageContent", finalStatus.messageContent),
+            Updates.set("confidence", finalStatus.confidence)
           )
 
           val options = new UpdateOptions().upsert(true)
-
           coll.updateOne(filter, update, options)
 
-          println(s"  âœ“ Upserted: ${status.checkpointName} (${status.status})")
+          println(s"  ✓ Upserted: ${finalStatus.checkpointName} " +
+            s"(↓${finalStatus.inboundStatus.status} ↑${finalStatus.outboundStatus.status})")
+
         } catch {
           case e: Exception =>
-            println(s"  âœ— Error upserting ${status.checkpointName}: ${e.getMessage}")
+            println(s"  ✗ Error upserting ${newStatus.checkpointName}: ${e.getMessage}")
         }
       }
 
       mongoClient.close()
     }
+  }
+
+  private def mergeStatuses(existingDoc: org.bson.Document, newStatus: CheckpointStatus): CheckpointStatus = {
+    import com.checkpoint.models.DirectionStatus
+
+    val oneHourAgo = new Timestamp(System.currentTimeMillis() - 3600000)
+
+    val oldInbound = Option(existingDoc.get("inboundStatus", classOf[Document])).map { doc =>
+      DirectionStatus(
+        status = doc.getString("status"),
+        lastUpdated = new Timestamp(doc.getDate("lastUpdated").getTime),
+        isRecent = doc.getBoolean("isRecent", false)
+      )
+    }
+
+    val oldOutbound = Option(existingDoc.get("outboundStatus", classOf[Document])).map { doc =>
+      DirectionStatus(
+        status = doc.getString("status"),
+        lastUpdated = new Timestamp(doc.getDate("lastUpdated").getTime),
+        isRecent = doc.getBoolean("isRecent", false)
+      )
+    }
+
+    val finalInbound = if (newStatus.inboundStatus.status != "unknown") {
+      newStatus.inboundStatus.copy(isRecent = true)
+    } else {
+      oldInbound.map { old =>
+        old.copy(isRecent = old.lastUpdated.after(oneHourAgo))
+      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, false))
+    }
+
+    val finalOutbound = if (newStatus.outboundStatus.status != "unknown") {
+      newStatus.outboundStatus.copy(isRecent = true)
+    } else {
+      oldOutbound.map { old =>
+        old.copy(isRecent = old.lastUpdated.after(oneHourAgo))
+      }.getOrElse(DirectionStatus("unknown", newStatus.lastUpdated, false))
+    }
+    val finalGeneral = (finalInbound.status, finalOutbound.status) match {
+      case (s1, s2) if s1 == s2 && s1 != "unknown" => s1
+      case ("unknown", s) if s != "unknown" => "partial"
+      case (s, "unknown") if s != "unknown" => "partial"
+      case (s1, s2) if s1 != s2 && s1 != "unknown" && s2 != "unknown" => "mixed"
+      case _ => "unknown"
+    }
+
+    CheckpointStatus(
+      checkpointId = newStatus.checkpointId,
+      checkpointName = newStatus.checkpointName,
+      generalStatus = finalGeneral,
+      inboundStatus = finalInbound,
+      outboundStatus = finalOutbound,
+      location = newStatus.location,
+      lastUpdated = newStatus.lastUpdated,
+      messageContent = newStatus.messageContent,
+      confidence = newStatus.confidence
+    )
   }
 
   private def parseMessage(jsonStr: String): Message = {
