@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مراقبة الحواجز - Checkpoint Monitoring</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <!-- Header with Stats -->
+    <header class="header-with-stats">
+        <div class="header-top">
+            <h1 class="title">حالة الحواجز</h1>
+
+            <div class="header-right">
+                <div class="stats-badges">
+                    <div class="stat-badge stat-closed">
+                        <span class="stat-indicator"></span>
+                        <span class="stat-text"><span id="closedCount">0</span> مغلق</span>
+                    </div>
+                    <div class="stat-badge stat-open">
+                        <span class="stat-indicator"></span>
+                        <span class="stat-text"><span id="openCount">0</span> مفتوح</span>
+                    </div>
+                </div>
+
+                <button class="refresh-btn" id="refreshBtn" title="تحديث">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="filters-container">
+        <div class="search-box">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="ابحث عن حاجز بالاسم...">
+        </div>
+
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">جميع الحالات</button>
+            <button class="filter-btn" data-filter="open">مفتوح</button>
+            <button class="filter-btn" data-filter="closed">مغلق</button>
+            <button class="filter-btn" data-filter="busy">مزدحم</button>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>جاري تحميل البيانات...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" id="errorMessage" style="display: none;">
+        <p>حدث خطأ في تحميل البيانات. يرجى المحاولة مرة أخرى.</p>
+    </div>
+
+    <!-- Checkpoints Grid -->
+    <div class="checkpoints-grid" id="checkpointsGrid">
+        <!-- Checkpoint cards will be inserted here by JavaScript -->
+    </div>
+
+    <!-- No Results Message -->
+    <div class="no-results" id="noResults" style="display: none;">
+        <p>لا توجد نتائج</p>
+    </div>
+</div>
+
+<!-- Checkpoint Detail Modal -->
+<div class="modal" id="checkpointModal">
+    <div class="modal-content">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div id="modalBody">
+            <!-- Modal content will be inserted by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
